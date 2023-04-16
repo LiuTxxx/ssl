@@ -2,19 +2,5 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-02_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-03_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-04_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-05_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-13_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_00-16_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-03_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-19_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-42_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-44_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-47_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-48_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-49_CIFAR10_250_0.85_0.03/code" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/exp/04-13_02-50_CIFAR10_250_0.85_0.03/code" vcs="Git" />
   </component>
 </project>

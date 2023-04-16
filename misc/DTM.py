@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from copy import deepcopy
 from collections import Counter
+from DBScan_m import DBScan
 
 
 def euclidean_dist(x, y):
@@ -27,6 +28,7 @@ class Cluster(nn.Module):
 
     def __init__(self, queue_len, num_class, feature_len, dist_type='cos', knn_num=1):
         super(Cluster, self).__init__()
+        self.scanner = DBScan()
         self.class_pool = FeaturePool(queue_len, num_class, feature_len)
         self.num_class = num_class
         self.centroids = torch.zeros((num_class, feature_len)).cuda()
@@ -57,10 +59,10 @@ class Cluster(nn.Module):
             self.centroids[i] = self.class_pool.query(i)
         return self.centroids
 
-    def update_centroid(self):
-        self.centroid_dist = euclidean_dist(self.centroids, self.centroids) + torch.eye(self.num_class,
-                                                                                        self.num_class).cuda() * 1e10
-        return bool
+    # def update_centroid(self):
+    #     self.centroid_dist = euclidean_dist(self.centroids, self.centroids) + torch.eye(self.num_class,
+    #                                                                                     self.num_class).cuda() * 1e10
+    #     return bool
 
     def cosine_similarity(self, x, y):
         dist = float("inf")
@@ -71,8 +73,11 @@ class Cluster(nn.Module):
         return self.fake_index, self.fake_labels
 
     def forward(self, feature, pred, unlabeled_index):
-        self.update_centroid()
+        # self.update_centroid()
         self.get_centroid()
+        radius, N = self.class_pool.get_r_n(self.centroids)
+        self.scanner.set_r_n(radius, N)
+        outliers = self.scanner.scan(self.centroids, feature)
         if self.dist_type == 'cos':
             label = torch.zeros(feature.size(0)).fill_(-1)
             # mask = torch.zeros(feature.size(0)).fill_(0)
@@ -103,7 +108,7 @@ class Cluster(nn.Module):
                     self.fake_index[label_idx][min_idx] = unlabeled_index[i]
 
             # label[idx] = lbs[idx].cpu().float()
-
+            label[outliers] = -1
             # update
             if unlabeled_index[select == 1].nelement() != 0:
                 self.selected_label[unlabeled_index[select == 1]] = label[select == 1].to(self.selected_label.dtype)
