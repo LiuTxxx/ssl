@@ -125,8 +125,8 @@ class Cluster(nn.Module):
                 pdf.append(pdf_tmp)
                 mean_cls.append(mean)
 
-            for i in range(10):
-                print(pdf[i](mean_cls[i].cpu()))
+            # for i in range(10):
+            #     print(pdf[i](mean_cls[i].cpu()))
 
             for i in range(feature.size(0)):
                 idx = int(label[i].item())

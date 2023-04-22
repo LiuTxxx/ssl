@@ -116,7 +116,7 @@ class Trainer():
                 T_MI_loss = torch.tensor(0)
 
             # =====================cross-entropy loss for unlabeled data==============
-            if lbs_u.size(0) > 0 and self.epoch >= 0:
+            if lbs_u.size(0) > 0 and self.epoch >= 2:
                 # pred_u_s = pred_u_s[valid_u]
                 # weight = torch.randn(407)
                 # weight = weight.cuda()
@@ -132,7 +132,7 @@ class Trainer():
                     # lbs_u_real = lbs_u_real[valid_u].cuda()
                     lbs_u_real = lbs_u_real.cuda()
                     valid_num = lbs_u_real.size(0)
-                    corr_lb = (lbs_u_real == lbs_u)
+                    corr_lb = (lbs_u_real == lbs_u.cuda())
                     loss_u_real = F.cross_entropy(pred_u_s, lbs_u_real)
             else:
                 loss_u = torch.tensor(0)
