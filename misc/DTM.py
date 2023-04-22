@@ -1,10 +1,13 @@
+import numpy as np
+
 from misc.feature_pool import FeaturePool
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from copy import deepcopy
 from collections import Counter
-from DBScan_m import DBScan
+from misc.DBScan_m import DBScan
+from scipy.stats import norm
 
 
 def euclidean_dist(x, y):
@@ -75,45 +78,69 @@ class Cluster(nn.Module):
     def forward(self, feature, pred, unlabeled_index):
         # self.update_centroid()
         self.get_centroid()
-        radius, N = self.class_pool.get_r_n(self.centroids)
-        self.scanner.set_r_n(radius, N)
-        outliers = self.scanner.scan(self.centroids, feature)
+        # radius, N = self.class_pool.get_r_n(self.centroids)
+        # self.scanner.set_r_n(radius, N)
+        # outliers = self.scanner.scan(self.centroids, feature)
         if self.dist_type == 'cos':
             label = torch.zeros(feature.size(0)).fill_(-1)
+            weight = torch.zeros(feature.size(0)).fill_(1)
+            cos_f = torch.zeros(feature.size(0)).fill_(0)
             # mask = torch.zeros(feature.size(0)).fill_(0)
             select = torch.zeros(feature.size(0)).fill_(0)
-            euc_dist = euclidean_dist(feature, self.centroids)
+            # euc_dist = euclidean_dist(feature, self.centroids)
             # euc_dist = euc_dist/euc_dist.sum(1,True)  #F.softmax(euc_dist,1)
-            min_euc, euc_id = euc_dist.min(1)  # euc_dist.topk(1,1,False,True)
-            assert len(min_euc) == len(feature)
+            # min_euc, euc_id = euc_dist.min(1)  # euc_dist.topk(1,1,False,True)
+            # assert len(min_euc) == len(feature)
 
             pred = F.softmax(pred, 1)
             scores, lbs = torch.max(pred, dim=1)
+            pdf = []
+            mean_cls = []
+            cos_cls = [[] for _ in range(self.num_class)]
 
             for i, f in enumerate(feature, 0):
                 f = f.unsqueeze(0)
                 cos_dist = self.cosine_similarity(f, self.centroids)
                 cos_max, label_idx = cos_dist.max(0)  # topk(1,0,True,True)  #top 2 max
 
-                if label_idx == euc_id[i] and cos_max > (0.85 * (self.classwise_acc[label_idx] / (2. - self.classwise_acc[label_idx]))):
-                    label[i] = label_idx
-                    # mask[i] = 1
-
-                if label_idx == euc_id[i] and cos_max > 0.85:
-                    select[i] = 1
+                # if label_idx == euc_id[i] and cos_max > (0.85 * (self.classwise_acc[label_idx] / (2. - self.classwise_acc[label_idx]))):
+                #     label[i] = label_idx
+                #     # mask[i] = 1
+                #
+                select[i] = 1
+                label[i] = label_idx
+                cos_cls[label_idx].append(cos_max)
+                cos_f[i] = cos_max
 
                 min_tmp, min_idx = self.pred_top_N[label_idx].min(0)
                 if scores[i] > min_tmp:
                     self.pred_top_N[label_idx][min_idx] = scores[i]
                     self.fake_index[label_idx][min_idx] = unlabeled_index[i]
 
+            for cos in cos_cls:
+                cos = torch.stack(cos)
+                mean = torch.mean(cos).cpu()
+                var = torch.var(cos).cpu()
+                pdf_tmp = norm(mean, torch.sqrt(var)).pdf
+                pdf.append(pdf_tmp)
+                mean_cls.append(mean)
+
+            for i in range(10):
+                print(pdf[i](mean_cls[i].cpu()))
+
+            for i in range(feature.size(0)):
+                idx = int(label[i].item())
+                if cos_f[i] < mean_cls[idx]:
+                    weight[i] = pdf[idx](cos_f[i].cpu())
+
+
             # label[idx] = lbs[idx].cpu().float()
-            label[outliers] = -1
+            # label[outliers] = -1
             # update
             if unlabeled_index[select == 1].nelement() != 0:
                 self.selected_label[unlabeled_index[select == 1]] = label[select == 1].to(self.selected_label.dtype)
             self.update()
-            return label
+            return label, weight
 
     @torch.no_grad()
     def update(self, *args, **kwargs):

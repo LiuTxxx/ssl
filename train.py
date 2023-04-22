@@ -96,7 +96,7 @@ class Trainer():
             img_l_weak, img_l_strong, lbs_l = img_l_weak.cuda(), img_l_strong.cuda(), lbs_l.cuda()
             img_u, img_u_weak, img_u_strong = img_u.cuda(), img_u_weak.cuda(), img_u_strong.cuda()
 
-            lbs_u, valid_u = self.lb_guessor(self.model, img_l_weak, img_u_weak, lbs_l, index_u)
+            lbs_u, weight = self.lb_guessor(self.model, img_l_weak, img_u_weak, lbs_l, index_u)
 
             n_u = img_u_strong.size(0)
 
@@ -116,12 +116,21 @@ class Trainer():
                 T_MI_loss = torch.tensor(0)
 
             # =====================cross-entropy loss for unlabeled data==============
-            if lbs_u.size(0) > 0 and self.epoch >= 2:
-                pred_u_s = pred_u_s[valid_u]
-                loss_u = self.cross_entropy(pred_u_s, lbs_u)
+            if lbs_u.size(0) > 0 and self.epoch >= 0:
+                # pred_u_s = pred_u_s[valid_u]
+                # weight = torch.randn(407)
+                # weight = weight.cuda()
+                # loss1 = F.cross_entropy(pred_u_s, lbs_u, weight=weight)
+                # loss_u = self.cross_entropy(pred_u_s, lbs_u)
+                loss_u = 0.
+                for i in range(cfg.batch_size * cfg.mu):
+                    idx = int(lbs_u[i].item())
+                    loss_u -= weight[i] * F.log_softmax(pred_u_s[i])[idx]
+                loss_u = loss_u / cfg.batch_size * cfg.mu
 
                 with torch.no_grad():
-                    lbs_u_real = lbs_u_real[valid_u].cuda()
+                    # lbs_u_real = lbs_u_real[valid_u].cuda()
+                    lbs_u_real = lbs_u_real.cuda()
                     valid_num = lbs_u_real.size(0)
                     corr_lb = (lbs_u_real == lbs_u)
                     loss_u_real = F.cross_entropy(pred_u_s, lbs_u_real)

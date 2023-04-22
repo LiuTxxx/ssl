@@ -73,13 +73,13 @@ class LabelGuessor(object):
                     model.eval()
                 return lbs.detach(), idx
             else:
-                pseudo = self.label_generator.forward(f_u.detach(), pred_u_w.detach(), unlabeled_index).long().cuda()
-                idx = pseudo > -1
-                lbs = pseudo[idx]
+                pseudo, weight = self.label_generator.forward(f_u.detach(), pred_u_w.detach(), unlabeled_index)
+                # idx = pseudo > -1
+                # lbs = pseudo[idx]
 
                 model.load_state_dict(org_state)
                 if is_train:
                     model.train()
                 else:
                     model.eval()
-                return lbs.detach(), idx
+                return pseudo.detach(), weight.detach()
