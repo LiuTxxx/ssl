@@ -1,12 +1,13 @@
 import torch
 from misc.DTM import Cluster
+from config import cfg
 
 
 class LabelGuessor(object):
 
     def __init__(self, args):
         self.label_generator = Cluster(args.n_labeled // args.n_classes * 10, num_class=args.n_classes,
-                                       feature_len=128).cuda()
+                                       feature_len=128, optimize=cfg.optimize).cuda()
 
         self.dataset = args.dataset
         self.args = args
@@ -43,7 +44,7 @@ class LabelGuessor(object):
                 num_add_sample = min((epoch - start_epoch) * 2, 200)
         self.label_generator.init_(num_add_sample, (num_add_sample + self.args.n_labeled // self.args.n_classes))
 
-    def __call__(self, model, img_l_weak, ims_u_weak, lbs_l, unlabeled_index=None):
+    def __call__(self, model, img_l_weak, ims_u_weak, lbs_l, epoch, unlabeled_index=None):
         org_state = {
             k: v.clone().detach()
             for k, v in model.state_dict().items()
@@ -73,7 +74,7 @@ class LabelGuessor(object):
                     model.eval()
                 return lbs.detach(), idx
             else:
-                pseudo = self.label_generator.forward(f_u.detach(), pred_u_w.detach(), unlabeled_index).long().cuda()
+                pseudo = self.label_generator.forward(f_u.detach(), pred_u_w.detach(), unlabeled_index, epoch).long().cuda()
                 idx = pseudo > -1
                 lbs = pseudo[idx]
 

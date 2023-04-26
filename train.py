@@ -96,7 +96,7 @@ class Trainer():
             img_l_weak, img_l_strong, lbs_l = img_l_weak.cuda(), img_l_strong.cuda(), lbs_l.cuda()
             img_u, img_u_weak, img_u_strong = img_u.cuda(), img_u_weak.cuda(), img_u_strong.cuda()
 
-            lbs_u, valid_u = self.lb_guessor(self.model, img_l_weak, img_u_weak, lbs_l, index_u)
+            lbs_u, valid_u = self.lb_guessor(self.model, img_l_weak, img_u_weak, lbs_l, self.epoch, index_u)
 
             n_u = img_u_strong.size(0)
 
