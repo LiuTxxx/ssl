@@ -1,13 +1,12 @@
 import torch
 from misc.DTM import Cluster
-from config import cfg
 
 
 class LabelGuessor(object):
 
     def __init__(self, args):
         self.label_generator = Cluster(args.n_labeled // args.n_classes * 10, num_class=args.n_classes,
-                                       feature_len=128, optimize=cfg.optimize).cuda()
+                                       feature_len=128).cuda()
 
         self.dataset = args.dataset
         self.args = args

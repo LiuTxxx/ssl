@@ -1,8 +1,3 @@
-import random
-import time
-import numpy as np
-import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from misc.MI_losses import Triplet_MI_loss
 from model.WideResnet import WideResnet
@@ -71,6 +66,7 @@ class Trainer():
 
             print(('=' * 50 + 'epoch: {}' + '=' * 50).format(self.epoch + 1))
             self.train()
+            # print(self.lb_guessor.label_generator.scanner.get_outliers())
             torch.cuda.empty_cache()
             self.evaluate(self.ema)
 

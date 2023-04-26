@@ -28,7 +28,8 @@ __C.seed = 3500
 __C.resume = False
 __C.resume_model = './exp/11-25_22-57_SVHN_250_0.85_0.03/latest_state.pth'  # the path of the resume model
 
-__C.optimize = "dynamic"  # option: none, dynamic, free, soft, dbscan
+__C.optimize = "dynamic"  # option: none, dynamic, free, soft
+__C.dbscan = False
 
 now = time.strftime("%m-%d_%H-%M", time.localtime())
 __C.exp_name = now \

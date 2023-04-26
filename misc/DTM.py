@@ -2,9 +2,8 @@ from misc.feature_pool import FeaturePool
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from copy import deepcopy
-from collections import Counter
 from misc.DBScan_m import DBScan
+from config import cfg
 
 
 def euclidean_dist(x, y):
@@ -26,7 +25,7 @@ def euclidean_dist(x, y):
 
 class Cluster(nn.Module):
 
-    def __init__(self, queue_len, num_class, feature_len, optimize="none", dist_type='cos', knn_num=1):
+    def __init__(self, queue_len, num_class, feature_len, dist_type='cos', knn_num=1):
         super(Cluster, self).__init__()
         self.scanner = DBScan()
         self.class_pool = FeaturePool(queue_len, num_class, feature_len)
@@ -38,8 +37,6 @@ class Cluster(nn.Module):
         self.pred_top_N = torch.zeros((self.num_class, knn_num)).fill_(-1).cuda()
         self.fake_index = [[-1 for i in range(knn_num)] for i in range(self.num_class)]
         self.fake_labels = [i for i in range(self.num_class) for j in range(knn_num)]
-
-        self.optimize = optimize
 
         self.count = [0 for _ in range(num_class)]
         self.cos_mean = 0.85
@@ -83,7 +80,7 @@ class Cluster(nn.Module):
             min_euc, euc_id = euc_dist.min(1)  # euc_dist.topk(1,1,False,True)
             assert len(min_euc) == len(feature)
 
-            if self.optimize == "dbscan":
+            if cfg.dbscan:
                 radius, N = self.class_pool.get_r_n(self.centroids)
                 self.scanner.set_r_n(radius, N)
                 outliers = self.scanner.scan(self.centroids, feature)
@@ -102,11 +99,11 @@ class Cluster(nn.Module):
                 threshold = 0.85
                 dynamic = 0.85
                 classwise_acc = 1
-                if self.optimize == "dynamic":
+                if cfg.optimize == "dynamic":
                     if self.count[label_idx] != 0:
                         classwise_acc = self.count[label_idx] / max(self.count)
                     dynamic = threshold * (classwise_acc / (2. - classwise_acc))
-                elif self.optimize == "free":
+                elif cfg.optimize == "free":
                     threshold = self.cos_mean
                     if self.count[label_idx] != 0:
                         classwise_acc = self.count[label_idx] / max(self.count)
@@ -115,10 +112,10 @@ class Cluster(nn.Module):
                 if label_idx == euc_id[i] and cos_max > dynamic and label[i] != -2:
                     label[i] = label_idx
 
-                if self.optimize == "dynamic" and label_idx == euc_id[i] and cos_max > threshold and label[i] != -2:
+                if cfg.optimize == "dynamic" and label_idx == euc_id[i] and cos_max > threshold and label[i] != -2:
                     self.count[label_idx] += 1
 
-                if self.optimize == "free" and label_idx == euc_id[i] and label[i] != -2:
+                if cfg.optimize == "free" and label_idx == euc_id[i] and label[i] != -2:
                     cos_list.append(cos_max)
                     self.count[label_idx] += 1
 
@@ -127,7 +124,7 @@ class Cluster(nn.Module):
                     self.pred_top_N[label_idx][min_idx] = scores[i]
                     self.fake_index[label_idx][min_idx] = unlabeled_index[i]
 
-            if self.optimize == "free" and len(cos_list) != 0:
+            if cfg.optimize == "free" and len(cos_list) != 0:
                 self.cos_mean = sum(cos_list) / len(cos_list)
 
             return label
