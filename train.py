@@ -126,7 +126,7 @@ class Trainer():
                 for i in range(cfg.batch_size * cfg.mu):
                     idx = int(lbs_u[i].item())
                     loss_u -= weight[i] * F.log_softmax(pred_u_s[i])[idx]
-                loss_u = loss_u / cfg.batch_size * cfg.mu
+                loss_u = loss_u / (cfg.batch_size * cfg.mu)
 
                 with torch.no_grad():
                     # lbs_u_real = lbs_u_real[valid_u].cuda()
@@ -198,6 +198,7 @@ class Trainer():
                 __, preds = ema.model(ims, mode='val')
                 scores = torch.softmax(preds, dim=1)
                 _, preds = torch.max(scores, dim=1)
+
                 match = lbs == preds
                 matches.append(match)
         matches = torch.cat(matches, dim=0).float()

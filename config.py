@@ -25,7 +25,7 @@ __C.momentum=0.9        #momentum for optimizer
 __C.seed = 3500
 
 __C.resume = False
-__C.resume_model = './exp/11-25_22-57_SVHN_250_0.85_0.03/latest_state.pth'  # the path of the resume model
+__C.resume_model = './exp/05-06_21-26_CIFAR10_250_0.85_0.03/latest_state.pth'  # the path of the resume model
 
 
 now = time.strftime("%m-%d_%H-%M", time.localtime())

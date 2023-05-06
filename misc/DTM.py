@@ -41,6 +41,11 @@ class Cluster(nn.Module):
         self.pred_top_N = torch.zeros((self.num_class, knn_num)).fill_(-1).cuda()
         self.fake_index = [[-1 for i in range(knn_num)] for i in range(self.num_class)]
         self.fake_labels = [i for i in range(self.num_class) for j in range(knn_num)]
+        self.Bu = feature_len
+
+        self.mean = torch.zeros(num_class).fill_(1. / num_class)
+        self.var = torch.ones(num_class)
+        self.ema = 0.999
 
         self.ulb_dest_len = 50000
         # self.thresh_warmup = True
@@ -87,15 +92,14 @@ class Cluster(nn.Module):
             cos_f = torch.zeros(feature.size(0)).fill_(0)
             # mask = torch.zeros(feature.size(0)).fill_(0)
             select = torch.zeros(feature.size(0)).fill_(0)
-            # euc_dist = euclidean_dist(feature, self.centroids)
+            euc_dist = euclidean_dist(feature, self.centroids)
             # euc_dist = euc_dist/euc_dist.sum(1,True)  #F.softmax(euc_dist,1)
-            # min_euc, euc_id = euc_dist.min(1)  # euc_dist.topk(1,1,False,True)
+            min_euc, euc_id = euc_dist.min(1)  # euc_dist.topk(1,1,False,True)
             # assert len(min_euc) == len(feature)
 
             pred = F.softmax(pred, 1)
             scores, lbs = torch.max(pred, dim=1)
             pdf = []
-            mean_cls = []
             cos_cls = [[] for _ in range(self.num_class)]
 
             for i, f in enumerate(feature, 0):
@@ -108,8 +112,8 @@ class Cluster(nn.Module):
                 #     # mask[i] = 1
                 #
                 select[i] = 1
-                label[i] = label_idx
-                cos_cls[label_idx].append(cos_max)
+                label[i] = euc_id[i]
+                cos_cls[euc_id[i]].append(cos_max)
                 cos_f[i] = cos_max
 
                 min_tmp, min_idx = self.pred_top_N[label_idx].min(0)
@@ -117,21 +121,28 @@ class Cluster(nn.Module):
                     self.pred_top_N[label_idx][min_idx] = scores[i]
                     self.fake_index[label_idx][min_idx] = unlabeled_index[i]
 
-            for cos in cos_cls:
-                cos = torch.stack(cos)
-                mean = torch.mean(cos).cpu()
-                var = torch.var(cos).cpu()
-                pdf_tmp = norm(mean, torch.sqrt(var)).pdf
+            for i, cos in enumerate(cos_cls):
+                if len(cos) != 0:
+                    cos = torch.stack(cos)
+                    mean = torch.mean(cos).cpu()
+                    var = torch.var(cos).cpu()
+                    self.mean[i] = self.ema * self.mean[i] + (1 - self.ema) * mean
+                    self.var[i] = self.ema * self.var[i] + (1 - self.ema) * var * (self.Bu / (self.Bu - 1))
+                pdf_tmp = norm(self.mean[i], torch.sqrt(self.var[i])).pdf
                 pdf.append(pdf_tmp)
-                mean_cls.append(mean)
+
+
+
 
             # for i in range(10):
             #     print(pdf[i](mean_cls[i].cpu()))
 
-            for i in range(feature.size(0)):
+            for i in range(len(feature)):
                 idx = int(label[i].item())
-                if cos_f[i] < mean_cls[idx]:
+                if cos_f[i] < self.mean[idx]:
                     weight[i] = pdf[idx](cos_f[i].cpu())
+                else:
+                    weight[i] = pdf[idx](self.mean[idx])
 
 
             # label[idx] = lbs[idx].cpu().float()
